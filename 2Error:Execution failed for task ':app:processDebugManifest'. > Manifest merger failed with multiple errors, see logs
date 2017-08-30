@@ -1,0 +1,34 @@
+2 Error:Execution failed for task ':app:processDebugManifest'.
+> Manifest merger failed with multiple errors, see logs
+
+
+这个问题我算是经常碰到,原因多种多样,总归是在AndroidManifest或者build文件 中有一些属性和lib中的设置的属性发生了冲突,
+这次我的是
+
+      <provider
+            android:name="android.support.v4.content.FileProvider"
+            android:authorities="artacm.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+和lib 中的
+     <provider
+           android:name="android.support.v4.content.FileProvider"
+            android:authorities="${applicationId}.provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/provider_paths" />
+        </provider>
+解决办法
+1.只要重写一个类 继承自FileProvider,然后就按上述方法在添加一个节点就可以了  亲测有效
+2.那就是把第三方sdk中的路径配置copy到provider_paths.xm  可以尝试
+
+这个问题出现,由于,android7.0修改了对私有存储的限制，导致在获取资源的时候，不能通过Uri.fromFile（..）来获取uri了，
+但是在写入数据的时候是可以通过Uri.fromFile（..）来获取uri的，Android 官网给出的解决办法是通过FileProvider来解决这一问题，
+我们需要在AndroidManifest.xml 配制provider节点。
+但如果接入第三方如图片选择器等等,涉及到调用私有储存的问题的sdk,里面都会有provider的节点,这样子就会发生冲突.
