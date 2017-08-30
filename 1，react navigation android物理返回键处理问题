@@ -1,0 +1,43 @@
+
+自从react navigation被重视起来后，用的人越来越多，但里面有些很小的坑让人感觉非常的痛苦
+goBack 或者 点击频率快多次跳转等等，都需要从源码解决
+同时还有一个android的物理返回键的问题需要处理
+原始会做一部分，但如果出现reset或者一些路由其他的问题，就需要我们手动设置一部分代码，特别是首页的双击退出问题。
+
+最开始碰到的问题是，reset后，首页无法退出路由，(因为首页为tab 所以也无法从上一页面传值，只能从本地传递值)，如果在首页中的tab页中设置BackHandle监听的话，
+那么之后所有的页面都会，调用这个监听，这个问题先放在这里。。。当时项目急就只能用最笨的方法每个页面都设置BackHandle监听，
+调用 goback 这样子做可以临时解决这个问题。
+但后期出现另外一个问题，就是loading的消失问题，我需要调用返回键的同时还需要将报文的loading dismiss掉，不然就会出现，loading 在show但已经回退到
+上一个界面的狗血问题
+
+最后附上android 返回键处理的解决办法，在设置路由的地方，添加这部分代码，
+感谢http://blog.csdn.net/u013718120/article/details/72357698 
+/** 
+ * 处理安卓返回键 
+ */  
+const defaultStateAction = Navigator.router.getStateForAction;  
+Navigator.router.getStateForAction = (action,state) => {  
+
+    if(state && action.type === NavigationActions.BACK && state.routes.length === 1) {  
+         
+            if (this.lastBackPressed && this.lastBackPressed + 2000 >= Date.now()) {
+
+                   //最近2秒内按过back键，可以退出应用。
+                    BackHandler.exitApp();
+                 return defaultStateAction(action,state);  
+
+            }else{
+             this.lastBackPressed = Date.now();
+
+             ToastAndroid.show('再按一次退出应用', ToastAndroid.SHORT);
+             const routes = [...state.routes];  
+                    return {  
+                        ...state,  
+                        ...state.routes,  
+                        index: routes.length - 1,  
+                    };  
+            }
+
+    }  
+    return defaultStateAction(action,state);  
+}; 
